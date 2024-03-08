@@ -80,6 +80,8 @@
 #define USBD_STR_SERIAL (0x03)
 #define USBD_STR_CDC (0x04)
 
+static bool s_host = false;
+
 //--------------------------------------------------------------------+
 // Device Descriptors
 //--------------------------------------------------------------------+
@@ -256,8 +258,9 @@ extern "C" const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t lang
 }
 
 // Call this to initialise the hardware
-void CoreUsbInit(NvicPriority priority) noexcept
+void CoreUsbInit(NvicPriority priority, bool host) noexcept
 {
+	s_host = host;
 #if SAME70
 
 	// Set the USB interrupt priority to a level that is allowed to make FreeRTOS calls
@@ -330,13 +333,27 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 
 	// This should be called after scheduler/kernel is started.
 	// Otherwise it could cause kernel issue since USB IRQ handler does use RTOS queue API.
-	tusb_init();
+	if (s_host)
+	{
+		tuh_init(0);
+	}
+	else
+	{
+		tud_init(0);
+	}
 
 	// RTOS forever loop
 	while (1)
 	{
 		// tinyusb device task
-		tud_task();
+		if (s_host)
+		{
+			tuh_task();
+		}
+		else
+		{
+			tud_task();
+		}
 //	    tud_cdc_write_flush();
 	}
 }
