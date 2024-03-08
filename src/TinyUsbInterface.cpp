@@ -406,7 +406,14 @@ uint32_t numUsbInterrupts = 0;
 extern "C" void USBHS_Handler() noexcept
 {
 	++numUsbInterrupts;
-	tud_int_handler(0);
+	if (s_host)
+	{
+		tuh_int_handler(0);
+	}
+	else
+	{
+		tud_int_handler(0);
+	}
 }
 
 #elif SAME5x
