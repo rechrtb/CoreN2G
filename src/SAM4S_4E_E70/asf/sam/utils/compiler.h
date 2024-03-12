@@ -252,17 +252,33 @@ typedef unsigned char           bool; //!< Boolean.
 #endif
 #endif
 typedef int8_t                  S8 ;  //!< 8-bit signed integer.
+
+#ifndef U8
 typedef uint8_t                 U8 ;  //!< 8-bit unsigned integer.
+#endif
+
 typedef int16_t                 S16;  //!< 16-bit signed integer.
+
+#ifndef U16
 typedef uint16_t                U16;  //!< 16-bit unsigned integer.
+#endif
+
 typedef uint16_t                le16_t;
 typedef uint16_t                be16_t;
 typedef int32_t                 S32;  //!< 32-bit signed integer.
+
+#ifndef U16
 typedef uint32_t                U32;  //!< 32-bit unsigned integer.
+#endif
+
 typedef uint32_t                le32_t;
 typedef uint32_t                be32_t;
 typedef int64_t                 S64;  //!< 64-bit signed integer.
+
+#ifndef U64
 typedef uint64_t                U64;  //!< 64-bit unsigned integer.
+#endif
+
 typedef float                   F32;  //!< 32-bit floating-point number.
 typedef double                  F64;  //!< 64-bit floating-point number.
 typedef uint32_t                iram_size_t;
