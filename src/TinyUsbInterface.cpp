@@ -80,8 +80,6 @@
 #define USBD_STR_SERIAL (0x03)
 #define USBD_STR_CDC (0x04)
 
-static bool s_host = false;
-
 //--------------------------------------------------------------------+
 // Device Descriptors
 //--------------------------------------------------------------------+
@@ -258,40 +256,15 @@ extern "C" const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t lang
 }
 
 // Call this to initialise the hardware
-void CoreUsbInit(NvicPriority priority, bool host) noexcept
+void CoreUsbInit(NvicPriority priority) noexcept
 {
-	s_host = host;
 #if SAME70
 	// Set the USB interrupt priority to a level that is allowed to make FreeRTOS calls
 	NVIC_SetPriority(USBHS_IRQn, priority);
 
 	// Start the UPLL clock. The default divider is 40 which is correct for 12MHz crystal.
 	pmc_enable_upll_clock();
-
-	if (!s_host)
-	{
-		// From the datasheet:
-		// "Before enabling the USB clock in the Power Management Controller, the USBHS must be enabled
-		// (by writing a one to the USBHS_CTRL.USBE bit and a zero to the USBHS_CTRL.FRZCLK bit)"
-	# if 0
-		pmc_switch_udpck_to_upllck(1 - 1);
-		USBHS->USBHS_DEVCTRL = USBHS_DEVCTRL_DETACH | USBHS_DEVCTRL_SPDCONF_FORCED_FS;
-	# elif TUD_OPT_HIGH_SPEED
-		pmc_switch_udpck_to_upllck(1 - 1);
-		USBHS->USBHS_DEVCTRL = USBHS_DEVCTRL_DETACH;
-	# else
-		pmc_switch_udpck_to_upllck(10 - 1);					// when high speed is disabled, tinyusb uses low power mode, which requires a 48MHz clock
-		USBHS->USBHS_DEVCTRL = USBHS_DEVCTRL_SPDCONF_LOW_POWER | USBHS_DEVCTRL_DETACH;
-	# endif
-		USBHS->USBHS_CTRL = USBHS_CTRL_UIMOD_DEVICE | USBHS_CTRL_USBE;
-
-		pmc_set_fast_startup_input(PMC_FSMR_USBAL);
-	}
-	else
-	{
-		pmc_switch_udpck_to_upllck(CONFIG_USBCLK_DIV - 1);
-	}
-
+	pmc_switch_udpck_to_upllck(CONFIG_USBCLK_DIV - 1);
 	pmc_enable_udpck();
 	// Enable peripheral clock for USBHS
 	pmc_enable_periph_clk(ID_USBHS);
@@ -331,37 +304,32 @@ void CoreUsbInit(NvicPriority priority, bool host) noexcept
 #endif
 }
 
+bool *host = nullptr;
+
 // USB Device Driver task
 // This top level thread process all usb events and invoke callbacks
 extern "C" void CoreUsbDeviceTask(void* param) noexcept
 {
+	host = reinterpret_cast<bool*>(param);
+
+	while (true)
+	{
+		bool mode = *host;
+
+		auto tusb_init = mode ? tuh_init : tud_init;
+		auto tusb_task = mode ? tuh_task : tud_task;
+
+		tusb_init(0);
+
+		while (*host == mode) // mode is the same
+		{
+			tusb_task();
+		}
+
+		// TODO: deinitialize USB device/host
+	}
+
 	(void)param;
-
-	// This should be called after scheduler/kernel is started.
-	// Otherwise it could cause kernel issue since USB IRQ handler does use RTOS queue API.
-	if (s_host)
-	{
-		tuh_init(0);
-	}
-	else
-	{
-		tud_init(0);
-	}
-
-	// RTOS forever loop
-	while (1)
-	{
-		// tinyusb device task
-		if (s_host)
-		{
-			tuh_task();
-		}
-		else
-		{
-			tud_task();
-		}
-//	    tud_cdc_write_flush();
-	}
 }
 
 #if RP2040		// RP2040 USB configuration has HID enabled by default
@@ -411,14 +379,11 @@ uint32_t numUsbInterrupts = 0;
 
 extern "C" void USBHS_Handler() noexcept
 {
-	++numUsbInterrupts;
-	if (s_host)
+	if (host)
 	{
-		tuh_int_handler(0);
-	}
-	else
-	{
-		tud_int_handler(0);
+		++numUsbInterrupts;
+		auto tusb_handler = *host ? tuh_int_handler : tud_int_handler;
+		tusb_handler(0);
 	}
 }
 

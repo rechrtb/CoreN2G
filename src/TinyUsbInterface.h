@@ -26,7 +26,7 @@
 
 #if SUPPORT_USB && CORE_USES_TINYUSB
 
-void CoreUsbInit(NvicPriority priority, bool host) noexcept;							// call this to initialise the hardware
+void CoreUsbInit(NvicPriority priority) noexcept;							// call this to initialise the hardware
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
 
 #endif
