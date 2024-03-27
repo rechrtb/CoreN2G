@@ -304,29 +304,30 @@ void CoreUsbInit(NvicPriority priority) noexcept
 #endif
 }
 
-bool *host = nullptr;
+
+volatile bool usbHostMode = false;
+
 
 // USB Device Driver task
 // This top level thread process all usb events and invoke callbacks
 extern "C" void CoreUsbDeviceTask(void* param) noexcept
 {
-	host = reinterpret_cast<bool*>(param);
+	bool mode = usbHostMode;
 
 	while (true)
 	{
-		bool mode = *host;
-
-		auto tusb_init = mode ? tuh_init : tud_init;
-		auto tusb_task = mode ? tuh_task : tud_task;
+		auto tusb_init = usbHostMode ? tuh_init : tud_init;
+		auto tusb_task = usbHostMode ? tuh_task : tud_task;
 
 		tusb_init(0);
 
-		while (*host == mode) // mode is the same
+		while (usbHostMode == mode) // mode is the same
 		{
 			tusb_task();
 		}
 
 		// TODO: deinitialize USB device/host
+		NVIC_DisableIRQ((IRQn_Type)ID_USBHS);
 	}
 
 	(void)param;
@@ -379,12 +380,9 @@ uint32_t numUsbInterrupts = 0;
 
 extern "C" void USBHS_Handler() noexcept
 {
-	if (host)
-	{
-		++numUsbInterrupts;
-		auto tusb_handler = *host ? tuh_int_handler : tud_int_handler;
-		tusb_handler(0);
-	}
+	++numUsbInterrupts;
+	auto tusb_handler = usbHostMode ? tuh_int_handler : tud_int_handler;
+	tusb_handler(0);
 }
 
 #elif SAME5x

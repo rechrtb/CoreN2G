@@ -25,8 +25,8 @@ class SerialCDC : public Stream
 public:
 	SerialCDC() noexcept;
 
-	void Start(Pin p_vBusPin) noexcept;
-	void end(void) noexcept;
+	virtual void Start(Pin p_vBusPin) noexcept;
+	virtual void end(void) noexcept;
 
 	int available() noexcept override;
 	int read() noexcept override;
@@ -36,7 +36,7 @@ public:
 	size_t write(const uint8_t *_ecv_array buffer, size_t size) noexcept override;
 
 	size_t canWrite() noexcept override;	// Function added by DC42 so that we can tell how many characters we can write without blocking (for Duet)
-	bool IsConnected() const noexcept;
+	virtual bool IsConnected() const noexcept;
 
 private:
 	volatile TaskHandle txWaitingTask;
