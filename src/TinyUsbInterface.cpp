@@ -304,9 +304,13 @@ void CoreUsbInit(NvicPriority priority) noexcept
 #endif
 }
 
+static volatile bool usbHostMode = false;
 
-volatile bool usbHostMode = false;
 
+bool CoreUsbGetMode()
+{
+	return usbHostMode;
+}
 
 // USB Device Driver task
 // This top level thread process all usb events and invoke callbacks
