@@ -79,7 +79,7 @@ void DualRoleSerialCDC::end(void) noexcept
 
 void DualRoleSerialCDC::setHostMode(bool hostMode) noexcept
 {
-	CoreUsbChangeMode(hostMode);
+	CoreUsbSetHostMode(hostMode);
 }
 
 size_t DualRoleSerialCDC::canWrite() noexcept

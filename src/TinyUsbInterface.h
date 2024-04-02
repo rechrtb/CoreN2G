@@ -28,7 +28,7 @@
 
 void CoreUsbInit(NvicPriority priority) noexcept;							// call this to initialise the hardware
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
-void CoreUsbChangeMode(bool host);
+void CoreUsbSetHostMode(bool hostMode);
 bool CoreUsbGetMode();
 
 #endif

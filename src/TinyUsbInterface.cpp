@@ -29,6 +29,8 @@
 #include "class/hid/hid_device.h"
 #include "class/audio/audio.h"
 #include "class/midi/midi.h"
+#include "host/hcd.h"
+#include "device/dcd.h"
 
 #if SAME70
 
@@ -306,6 +308,13 @@ void CoreUsbInit(NvicPriority priority) noexcept
 
 static volatile bool usbHostMode = false;
 
+void CoreUsbSetHostMode(bool hostMode)
+{
+	if (usbHostMode != hostMode) // do not unecessarily reinitialize USB stack
+	{
+		usbHostMode = hostMode;
+	}
+}
 
 bool CoreUsbGetMode()
 {
@@ -316,25 +325,37 @@ bool CoreUsbGetMode()
 // This top level thread process all usb events and invoke callbacks
 extern "C" void CoreUsbDeviceTask(void* param) noexcept
 {
-	bool mode = usbHostMode;
+	(void)param;
 
 	while (true)
 	{
-		auto tusb_init = usbHostMode ? tuh_init : tud_init;
-		auto tusb_task = usbHostMode ? tuh_task : tud_task;
+		bool savedMode = usbHostMode;
 
+		auto tusb_init = usbHostMode ? tud_init : tud_init;
 		tusb_init(0);
 
-		while (usbHostMode == mode) // mode is the same
+		auto tusb_task = savedMode ? tud_task_ext : tud_task_ext;
+		while (savedMode == usbHostMode) // exit when mode is different
 		{
-			tusb_task();
+			tusb_task(100, false);
 		}
 
-		// TODO: deinitialize USB device/host
-		NVIC_DisableIRQ((IRQn_Type)ID_USBHS);
-	}
+			// Disconnected
+			tud_disconnect();
+		// Run the task one more time, to handle disconnection/removal
+		tusb_task(100, false);
 
-	(void)param;
+		// Put USB in reset, to clear everything.
+		// The respective tinyUSB init function will bring it out of reset.
+		USBHS->USBHS_CTRL &= ~USBHS_CTRL_USBE;
+		// Reset the DPRAM for all ten endpoints/pipes
+		for (int i = 9; i >= 0; i--)
+		{
+				USBHS->USBHS_DEVEPTCFG[i] &= ~(USBHS_DEVEPTCFG_ALLOC);
+		}
+			tud_connect();
+			dcd_int_enable(0);
+	}
 }
 
 #if RP2040		// RP2040 USB configuration has HID enabled by default
@@ -385,7 +406,7 @@ uint32_t numUsbInterrupts = 0;
 extern "C" void USBHS_Handler() noexcept
 {
 	++numUsbInterrupts;
-	auto tusb_handler = usbHostMode ? tuh_int_handler : tud_int_handler;
+	auto tusb_handler = usbHostMode ? tud_int_handler : tud_int_handler;
 	tusb_handler(0);
 }
 
