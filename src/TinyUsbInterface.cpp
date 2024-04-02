@@ -306,19 +306,20 @@ void CoreUsbInit(NvicPriority priority) noexcept
 #endif
 }
 
-static volatile bool usbHostMode = false;
+static volatile bool newUsbMode = false;
+static volatile bool savedUsbMode = false;
 
 void CoreUsbSetHostMode(bool hostMode)
 {
-	if (usbHostMode != hostMode) // do not unecessarily reinitialize USB stack
+	if (newUsbMode != hostMode) // do not unecessarily reinitialize USB stack
 	{
-		usbHostMode = hostMode;
+		newUsbMode = hostMode;
 	}
 }
 
 bool CoreUsbGetMode()
 {
-	return usbHostMode;
+	return savedUsbMode;
 }
 
 // USB Device Driver task
@@ -329,19 +330,33 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 
 	while (true)
 	{
-		bool savedMode = usbHostMode;
+		savedUsbMode = newUsbMode;
 
-		auto tusb_init = usbHostMode ? tud_init : tud_init;
+		auto tusb_init = savedUsbMode ? tuh_init : tud_init;
 		tusb_init(0);
 
-		auto tusb_task = savedMode ? tud_task_ext : tud_task_ext;
-		while (savedMode == usbHostMode) // exit when mode is different
+		auto usb_int_enable = savedUsbMode ? hcd_int_enable : dcd_int_enable;
+		usb_int_enable(0);
+
+		auto tusb_task = savedUsbMode ? tuh_task_ext : tud_task_ext;
+		while (savedUsbMode == newUsbMode) // exit when mode is different
 		{
 			tusb_task(100, false);
 		}
 
-			// Disconnected
+		if (savedUsbMode)
+		{
+			USBHS->USBHS_HSTIER |= USBHS_HSTIER_DDISCIES;
+			// Disable all interrupts except device removal
+			USBHS->USBHS_HSTIDR = ~(USBHS_HSTICR_DDISCIC);
+			// Trigger a device removal
+			USBHS->USBHS_HSTIFR |= (USBHS_HSTIFR_DDISCIS);
+		}
+		else
+		{
 			tud_disconnect();
+		}
+
 		// Run the task one more time, to handle disconnection/removal
 		tusb_task(100, false);
 
@@ -351,10 +366,27 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 		// Reset the DPRAM for all ten endpoints/pipes
 		for (int i = 9; i >= 0; i--)
 		{
+			if (savedUsbMode)
+			{
+				USBHS->USBHS_HSTPIPCFG[i] &= ~(USBHS_HSTPIPCFG_ALLOC);
+			}
+			else
+			{
 				USBHS->USBHS_DEVEPTCFG[i] &= ~(USBHS_DEVEPTCFG_ALLOC);
+			}
 		}
+
+		if (newUsbMode)
+		{
+			if (tuh_inited()) // check i
+			{
+				hcd_init(0);
+			}
+		}
+		else
+		{
 			tud_connect();
-			dcd_int_enable(0);
+		}
 	}
 }
 
@@ -406,7 +438,7 @@ uint32_t numUsbInterrupts = 0;
 extern "C" void USBHS_Handler() noexcept
 {
 	++numUsbInterrupts;
-	auto tusb_handler = usbHostMode ? tud_int_handler : tud_int_handler;
+	auto tusb_handler = savedUsbMode ? tuh_int_handler : tud_int_handler;
 	tusb_handler(0);
 }
 
