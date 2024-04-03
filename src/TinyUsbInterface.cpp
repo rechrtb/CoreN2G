@@ -257,9 +257,22 @@ extern "C" const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t lang
 	return desc_str;
 }
 
+static volatile bool newUsbMode = false;
+static volatile bool savedUsbMode = false;
+
+static Pin UsbVbusDetect;
+static Pin UsbVbusOn;
+static Pin UsbModeSwitch;
+static Pin UsbModeDetect;
+
 // Call this to initialise the hardware
-void CoreUsbInit(NvicPriority priority) noexcept
+void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept
 {
+	UsbVbusDetect = usbVbusDetect;
+	UsbVbusOn = usbVbusOn;
+	UsbModeSwitch = usbModeSwitch;
+	UsbModeDetect = usbModeDetect;
+
 #if SAME70
 	// Set the USB interrupt priority to a level that is allowed to make FreeRTOS calls
 	NVIC_SetPriority(USBHS_IRQn, priority);
@@ -306,18 +319,29 @@ void CoreUsbInit(NvicPriority priority) noexcept
 #endif
 }
 
-static volatile bool newUsbMode = false;
-static volatile bool savedUsbMode = false;
-
-void CoreUsbSetHostMode(bool hostMode)
+bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply)
 {
-	if (newUsbMode != hostMode) // do not unecessarily reinitialize USB stack
+	if (hostMode && CoreUsbIsHostMode())
 	{
+		reply.printf("Already in host mode\n");
+		return false;
+	}
+
+	if (hostMode && digitalRead(UsbVbusDetect))
+	{
+		reply.printf("Board still plugged in to host\n");
+		return false;
+	}
+
+	if (savedUsbMode != hostMode) // do not unecessarily reinitialize in device mode
+	{
+		digitalWrite(UsbVbusOn, hostMode);
 		newUsbMode = hostMode;
 	}
+	return true;
 }
 
-bool CoreUsbGetMode()
+bool CoreUsbIsHostMode()
 {
 	return savedUsbMode;
 }
@@ -469,6 +493,15 @@ extern "C" void USB_3_Handler(void)
 {
 	++numUsbInterrupts;
 	tud_int_handler(0);
+}
+
+// On the SAM4E and SAM4S we use a GPIO pin available to monitor the VBUS state
+void core_vbus_off(CallbackParameter) noexcept
+{
+	if (serialUSBDevice != nullptr)
+	{
+		serialUSBDevice->cdcSetConnected(false);
+	}
 }
 
 #endif

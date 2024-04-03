@@ -23,13 +23,14 @@
 #define TINYUSBINTERFACE_H_INCLUDED
 
 #include <Core.h>
+#include <General/StringRef.h>
 
 #if SUPPORT_USB && CORE_USES_TINYUSB
 
-void CoreUsbInit(NvicPriority priority) noexcept;							// call this to initialise the hardware
+void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept;	// call this to initialise the hardware
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
-void CoreUsbSetHostMode(bool hostMode);
-bool CoreUsbGetMode();
+bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply);
+bool CoreUsbIsHostMode();
 
 #endif
 
