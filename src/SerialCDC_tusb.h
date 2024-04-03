@@ -38,10 +38,12 @@ public:
 	size_t canWrite() noexcept override;	// Function added by DC42 so that we can tell how many characters we can write without blocking (for Duet)
 	virtual bool IsConnected() const noexcept;
 
+protected:
+	Pin vBusPin;
+
 private:
 	volatile TaskHandle txWaitingTask;
     bool running = false;
-	Pin vBusPin;
 };
 
 #endif

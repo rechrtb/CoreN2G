@@ -1,12 +1,14 @@
 #pragma once
 
+#include <General/StringRef.h>
+
 #include "SerialCDC.h"
 #include "TinyUsbInterface.h"
 
 class DualRoleSerialCDC : public SerialCDC
 {
 public:
-    void Start(Pin p_vBusPin) noexcept override;
+    void Start(Pin p_vBusPin, Pin p_powSwPin) noexcept;
 	void end(void) noexcept override;
 
 	int available() noexcept override;
@@ -19,7 +21,8 @@ public:
     size_t canWrite() noexcept override;
 	bool IsConnected() const noexcept override;
 
-    void setHostMode(bool host);
+    bool setHostMode(bool host, const StringRef& reply);
 
 private:
+	Pin powSwPin;
 };
