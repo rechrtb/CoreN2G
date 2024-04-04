@@ -414,6 +414,13 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 	}
 }
 
+void CoreUsbStop()
+{
+	digitalWrite(UsbVbusOn, false);
+	NVIC_EnableIRQ((IRQn_Type)ID_USBHS);
+	USBHS->USBHS_CTRL &= ~USBHS_CTRL_USBE;
+}
+
 #if RP2040		// RP2040 USB configuration has HID enabled by default
 
 // Invoked when received GET HID REPORT DESCRIPTOR
@@ -493,15 +500,6 @@ extern "C" void USB_3_Handler(void)
 {
 	++numUsbInterrupts;
 	tud_int_handler(0);
-}
-
-// On the SAM4E and SAM4S we use a GPIO pin available to monitor the VBUS state
-void core_vbus_off(CallbackParameter) noexcept
-{
-	if (serialUSBDevice != nullptr)
-	{
-		serialUSBDevice->cdcSetConnected(false);
-	}
 }
 
 #endif

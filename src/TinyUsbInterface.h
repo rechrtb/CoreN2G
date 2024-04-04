@@ -31,6 +31,7 @@ void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin us
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
 bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply);
 bool CoreUsbIsHostMode();
+void CoreUsbStop();
 
 #endif
 
