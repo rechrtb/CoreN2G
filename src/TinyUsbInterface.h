@@ -29,7 +29,7 @@
 #include "tusb_option.h"
 
 #if CFG_TUH_ENABLED
-void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept;	// call this to initialise the hardware
+void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect = NoPin, Pin usbVbusOn = NoPin, Pin usbModeSwitch = NoPin, Pin usbModeDetect = NoPin) noexcept;	// call this to initialise the hardware
 bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply);
 bool CoreUsbIsHostMode();
 #else
@@ -39,6 +39,8 @@ void CoreUsbInit(NvicPriority priority) noexcept;	// call this to initialise the
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
 void CoreUsbStop();
 
+#else
+#define CFG_TUH_ENABLED 0
 #endif
 
 
