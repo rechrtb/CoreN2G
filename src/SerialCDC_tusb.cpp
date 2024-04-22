@@ -26,25 +26,35 @@ SerialCDC::SerialCDC() noexcept
 
 void SerialCDC::Start(Pin p) noexcept
 {
-	if (!CoreUsbIsHostMode())
+#if CFG_TUH_ENABLED
+	if (CoreUsbIsHostMode())
 	{
-		vBusPin = p;
-		while (!tud_inited()) { delay(10); }
-		running = true;
+		return;
 	}
+#endif
+	vBusPin = p;
+	while (!tud_inited()) { delay(10); }
+	running = true;
 }
 
 void SerialCDC::end() noexcept
 {
-	if (!CoreUsbIsHostMode())
+#if CFG_TUH_ENABLED
+	if (CoreUsbIsHostMode())
 	{
-		running = false;
+		return;
 	}
+#endif
+	running = false;
 }
 
 bool SerialCDC::IsConnected() const noexcept
 {
-	return !CoreUsbIsHostMode() && tud_cdc_connected();
+	return
+#if CFG_TUH_ENABLED
+	!CoreUsbIsHostMode() &&
+#endif
+	tud_cdc_connected();
 }
 
 // Overridden virtual functions
@@ -55,31 +65,43 @@ bool SerialCDC::IsConnected() const noexcept
 // available() returned nonzero bit read() never read it. Now we check neither when reading.
 int SerialCDC::read() noexcept
 {
-    if (!running || CoreUsbIsHostMode())
-    {
-    	return -1;
-    }
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
+	{
+		return -1;
+	}
 
-    if (tud_cdc_available())
-    {
-        return tud_cdc_read_char();
-    }
-    return -1;
+	if (tud_cdc_available())
+	{
+		return tud_cdc_read_char();
+	}
+	return -1;
 }
 
 int SerialCDC::available() noexcept
 {
-    if (!running || CoreUsbIsHostMode())
-    {
-    	return 0;
-    }
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
+	{
+		return 0;
+	}
 
-    return tud_cdc_available();
+	return tud_cdc_available();
 }
 
 size_t SerialCDC::readBytes(char * _ecv_array buffer, size_t length) noexcept
 {
-	if (CoreUsbIsHostMode())
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
 	{
 		return 0;
 	}
@@ -89,7 +111,11 @@ size_t SerialCDC::readBytes(char * _ecv_array buffer, size_t length) noexcept
 
 void SerialCDC::flush() noexcept
 {
-	if (!running || CoreUsbIsHostMode())
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
 	{
 		return;
 	}
@@ -99,7 +125,11 @@ void SerialCDC::flush() noexcept
 
 size_t SerialCDC::canWrite() noexcept
 {
-	if (!running || CoreUsbIsHostMode())
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
 	{
 		return 0;
 	}
@@ -110,17 +140,23 @@ size_t SerialCDC::canWrite() noexcept
 // Write single character, blocking
 size_t SerialCDC::write(uint8_t c) noexcept
 {
+#if CFG_TUH_ENABLED
 	if (CoreUsbIsHostMode())
 	{
 		return 0;
 	}
+#endif
 	return write(&c, 1);
 }
 
 // Blocking write block
 size_t SerialCDC::write(const uint8_t *buf, size_t length) noexcept
 {
-	if (!running || CoreUsbIsHostMode())
+	if (!running
+#if CFG_TUH_ENABLED
+	|| CoreUsbIsHostMode()
+#endif
+	)
 	{
 		return 0;
 	}

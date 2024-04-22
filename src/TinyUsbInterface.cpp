@@ -257,6 +257,7 @@ extern "C" const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t lang
 	return desc_str;
 }
 
+#if CFG_TUH_ENABLED
 static volatile bool isHostMode = false;
 static volatile bool changingMode = false;
 
@@ -264,14 +265,22 @@ static Pin UsbVbusDetect;
 static Pin UsbVbusOn;
 static Pin UsbModeSwitch;
 static Pin UsbModeDetect;
+#endif
 
 // Call this to initialise the hardware
+#if CFG_TUH_ENABLED
 void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept
+#else
+void CoreUsbInit(NvicPriority priority) noexcept
+#endif
 {
+
+#if CFG_TUH_ENABLED
 	UsbVbusDetect = usbVbusDetect;
 	UsbVbusOn = usbVbusOn;
 	UsbModeSwitch = usbModeSwitch;
 	UsbModeDetect = usbModeDetect;
+#endif
 
 #if SAME70
 	// Set the USB interrupt priority to a level that is allowed to make FreeRTOS calls
@@ -319,6 +328,7 @@ void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin us
 #endif
 }
 
+#if CFG_TUH_ENABLED
 bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply)
 {
 	if (changingMode)
@@ -416,10 +426,24 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 		isHostMode = !isHostMode;
 	}
 }
+#else
+extern "C" void CoreUsbDeviceTask(void* param) noexcept
+{
+	(void)param;
+
+	tud_init(0);
+	while (true)
+	{
+		tud_task();
+	}
+}
+#endif
 
 void CoreUsbStop()
 {
+#if CFG_TUH_ENABLED
 	digitalWrite(UsbVbusOn, false);
+#endif
 	NVIC_DisableIRQ((IRQn_Type)ID_USBHS);
 	USBHS->USBHS_CTRL &= ~USBHS_CTRL_USBE;
 }
@@ -472,8 +496,12 @@ uint32_t numUsbInterrupts = 0;
 extern "C" void USBHS_Handler() noexcept
 {
 	++numUsbInterrupts;
+#if CFG_TUH_ENABLED
 	auto tusb_handler = isHostMode ? tuh_int_handler : tud_int_handler;
 	tusb_handler(0);
+#else
+	tud_int_handler(0);
+#endif
 }
 
 #elif SAME5x

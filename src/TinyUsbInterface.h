@@ -28,10 +28,15 @@
 #if SUPPORT_USB && CORE_USES_TINYUSB
 #include "tusb_option.h"
 
+#if CFG_TUH_ENABLED
 void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept;	// call this to initialise the hardware
-extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
 bool CoreUsbSetHostMode(bool hostMode, const StringRef& reply);
 bool CoreUsbIsHostMode();
+#else
+void CoreUsbInit(NvicPriority priority) noexcept;	// call this to initialise the hardware
+#endif
+
+extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
 void CoreUsbStop();
 
 #endif
