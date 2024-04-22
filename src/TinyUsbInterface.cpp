@@ -417,7 +417,7 @@ extern "C" void CoreUsbDeviceTask(void* param) noexcept
 void CoreUsbStop()
 {
 	digitalWrite(UsbVbusOn, false);
-	NVIC_EnableIRQ((IRQn_Type)ID_USBHS);
+	NVIC_DisableIRQ((IRQn_Type)ID_USBHS);
 	USBHS->USBHS_CTRL &= ~USBHS_CTRL_USBE;
 }
 
