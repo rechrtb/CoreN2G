@@ -26,6 +26,7 @@
 #include <General/StringRef.h>
 
 #if SUPPORT_USB && CORE_USES_TINYUSB
+#include "tusb_option.h"
 
 void CoreUsbInit(NvicPriority priority, Pin usbVbusDetect, Pin usbVbusOn, Pin usbModeSwitch, Pin usbModeDetect) noexcept;	// call this to initialise the hardware
 extern "C" [[noreturn]] void CoreUsbDeviceTask(void* param) noexcept;		// this must be called by the USB task
