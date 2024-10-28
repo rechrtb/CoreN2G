@@ -22,10 +22,10 @@
 constexpr NvicPriority TempNvicPriorityDMA = 2;			// temporary DMA interrupt priority, low enough to allow FreeRTOS system calls
 
 // Descriptors for all used DMAC channels
-alignas(16) static DmacDescriptor descriptor_section[NumDmaChannelsSupported];
+alignas(16) __attribute__((section(".DmaState"))) static DmacDescriptor descriptor_section[NumDmaChannelsSupported];
 
 // Write back descriptors for all used DMAC channels
-alignas(16) static DmacDescriptor write_back_section[NumDmaChannelsSupported];
+alignas(16) __attribute__((section(".DmaState"))) static DmacDescriptor write_back_section[NumDmaChannelsSupported];
 
 // Array containing callbacks for DMAC channels
 static DmaCallbackFunction dmaChannelCallbackFunctions[NumDmaChannelsSupported];
