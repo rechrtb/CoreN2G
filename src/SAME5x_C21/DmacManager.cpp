@@ -52,7 +52,7 @@ void DmacManager::Init() noexcept
 
 #if SAME5x
 	DMAC->PRICTRL0.reg =  DMAC_PRICTRL0_RRLVLEN0 | DMAC_PRICTRL0_RRLVLEN1 | DMAC_PRICTRL0_RRLVLEN2 | DMAC_PRICTRL0_RRLVLEN3		// round robin arbitration for channels of equal priority
-							| DMAC_PRICTRL0_QOS0(0x00)									// level 0 is not critical e.g. TMC UART transmit
+							| DMAC_PRICTRL0_QOS0(0x01)									// level 0 is not critical e.g. TMC UART transmit
 							| DMAC_PRICTRL0_QOS1(0x02)									// level 1 has medium sensitive to latency e.g. TMA UART receive, WS2812 send
 							| DMAC_PRICTRL0_QOS2(0x03) | DMAC_PRICTRL0_QOS3(0x03);		// levels 2 and 3 have critical latency e.g. WiFi Tx/Rx
 #elif SAMC21
