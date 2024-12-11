@@ -295,7 +295,7 @@ public:
 	}
 
 private:
-	irqflags_t flags;
+	coreIrqflags_t flags;
 };
 
 #if SAME5x || SAM4E || SAM4S || SAME70		// SAMC21 doesn't support these
