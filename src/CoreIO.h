@@ -261,6 +261,12 @@ inline bool memeqi32(const int32_t *_ecv_array dst, const int32_t *_ecv_array sr
 // Returns true if the arrays are equal
 bool memeqf(const float *_ecv_array dst, const float *_ecv_array src, size_t numWords) noexcept;
 
+// memset for float arrays
+void memsetf(float *_ecv_array dst, float val, size_t numWords) noexcept;
+
+// memset for int32_t arrays
+void memseti32(int32_t *_ecv_array dst, int32_t val, size_t numWords) noexcept;
+
 // Get the stack pointer
 #ifdef __ECV__
 
