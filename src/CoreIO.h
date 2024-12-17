@@ -19,9 +19,9 @@
 #include <General/SimpleMath.h>
 
 // Exported memory control variables. These are defined in file syscalls.h which must be included by exactly one client file.
-extern char *heapTop;
-extern const char *heapLimit;
-extern const char *sysStackLimit;
+extern char *_ecv_array heapTop;
+extern const char *_ecv_array heapLimit;
+extern const char *_ecv_array sysStackLimit;
 
 // Define NumTotalPins as the pin number at and beyond which it is not safe to access the corresponding port registers on this processor family.
 // This may be greater than the number of I/O pins actually on the particular device we are running on.
